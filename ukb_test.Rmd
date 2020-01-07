@@ -1,0 +1,95 @@
+---
+title: "oddsratio_test_ukb"
+author: "Cailu Lin"
+date: "2019Äê2ÔÂ27ÈÕ"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+pacman::p_load(tidyverse, readr, zipcode, maps, viridis, ggthemes, albersusa, devtools, sf, raster, sp, rgeos, spData, maptools,ggplot2, ggalt, ggthemes, viridis,scales, spDataLarge, mapview,tmap, leaflet,psych)
+```
+
+```{r}
+rm(list = ls())
+graphics.off()
+df <- read.csv("PhenoSet1_2443traits_v2.csv", header=T)
+g <- read.csv("Tas2R38Diplotype_ukb.csv", header=T)
+```
+#combine p&g
+```{r}
+p <-df[,c(1,2:1499)]
+#p$J32 <- rowSums(as.data.frame(lapply(p[48:54],as.numeric)))
+#p$J33 <- rowSums(as.data.frame(lapply(p[55:58],as.numeric)))
+
+
+g_p <- merge(p, g, by="eid")%>%
+  filter(TAS2R38_Diplotype=="AVI/AVI" |TAS2R38_Diplotype=="AVI/PAV"|TAS2R38_Diplotype=="PAV/PAV")
+#g_p[g_p$J32 !=0, "J32"]<-1
+#g_p[g_p$J33 !=0, "J33"]<-1 
+```
+
+calulate OR
+```{r}
+pacman::p_load(epitab, epitools, eply)
+
+r<- data.frame(matrix(ncol = 11, nrow = 0))
+colnames(r)<-c("geno","X0","X1","Total","estimate","lower","upper","midp.exact", "fisher.exact","chi.square", "trait")
+r2<-r
+r2[1,]<-NA
+for(i in 2:(length(names(g_p))-5)){
+  d<-g_p %>%
+    group_by_(.dots=c("TAS2R38_Diplotype",names(g_p)[i]))%>%
+    summarise_(~n())%>%
+    spread(noquote(names(g_p)[i]),'n()') %>%
+    as.data.frame()
+  rownames(d) <- d[,1]
+  d[,1] <- NULL
+  d<-as.matrix(d)
+  d<-d[complete.cases(d* 0), , drop=FALSE]
+  
+  if (nrow(d)>1 &ncol(d)>1) {
+  
+    oddsratio<-oddsratio(x=d, y=NULL, method = "midp")
+    d1<-data.frame(oddsratio$data)
+    d1$geno <- rownames(d1)
+    d2<-data.frame(oddsratio$measure)
+    d2$geno <- rownames(d2)
+    d3<-data.frame(oddsratio$p.value)
+    d3$geno <- rownames(d3)
+  
+    r1<-merge(d1,merge(d2,d3, by="geno"), by="geno", all=T)
+    r1$trait<-names(g_p)[i]
+    
+    r<-bind_rows(r, r1)
+   } else {
+      r2[1,11] <-names(g_p)[i]
+      r<-bind_rows(r, r2)
+    }
+}
+
+write.csv(r, "C:/Users/clin/Desktop/ukb/OddratioTest_T2R38_2.csv", row.names = F)
+#riskratio<-riskratio(x=d, y=NULL, method = "boot")
+#riskratio
+#rateratio<-rateratio(x=d, y=NULL, method = "midp")
+#rateratio
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
