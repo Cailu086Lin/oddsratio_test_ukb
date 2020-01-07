@@ -1,7 +1,7 @@
 ---
 title: "oddsratio_test_ukb"
 author: "Cailu Lin"
-date: "2019Äê2ÔÂ27ÈÕ"
+date: "2019Ã„Ãª2Ã”Ã‚27ÃˆÃ•"
 output: html_document
 ---
 
